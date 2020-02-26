@@ -1,14 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import os
-
-
-# In[2]:
-
 
 #-----Training param-----
 encoder_layers = 3
@@ -60,10 +50,6 @@ val_month_stock = './val_data/val_month_stock.pickle'
 val_t_month_stock = './val_data/val_t_month_stock.pickle'
 val_input_cap_vector = './val_data/val_input_cap_vector.pickle'
 val_output_cap_vector = './val_data/val_output_cap_vector.pickle'
-
-
-# In[ ]:
-
 
 
 
