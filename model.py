@@ -1,15 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
-#커밋 새로 다시해!
-
-
-# In[3]:
-
-
 import time
 import config as cfg
 from preprocess import make_embedding_matrix
@@ -17,15 +5,6 @@ from module import encoder_module, decoder_module
 from batch_generator import batch_generator , load_training_data, load_val_data
 
 import tensorflow as tf
-
-
-# In[ ]:
-
-
-make_embedding_matrix
-
-
-# In[20]:
 
 
 class Model():
@@ -44,15 +23,6 @@ class Model():
         self.SOS_token = cfg.SOS_token
         self.EOS_token = cfg.EOS_token
         
-#         ##############for grad_cam####################
-#         self.Y = tf.placeholder(tf.float32, [None, num_labels])
-#         self.W = tf.Variable(initializer([hidden_dim, num_labels]))
-#         self.b = tf.Variable(initializer([num_labels]))
-#         encoded_output = tf.transpose(encoded_output, [1, 0, 2])
-#         encoder_output = encoded_output[-1]
-#         model = tf.matmul(encoder_output, W) + b
-#         ##############################################
-            
         if init_train:
             self._init_train()
             train_week_stock, train_month_stock, t_month_stock,            train_input_cap_vector, train_output_cap_vector = load_training_data()
@@ -155,10 +125,10 @@ class Model():
                 end = time.time()
                 print('epoch: {}{}, \t loss : {}\t Time: {}'.format(e+1, epochs, total_loss/total_step, end-start_time))
                 if e % 100 ==0:
-                    self.train_saver.save(sess, './') #self.save_path)
+                    self.train_saver.save(self.train_session, './') #self.save_path)
 
 
-# In[ ]:
+
 
 
 
