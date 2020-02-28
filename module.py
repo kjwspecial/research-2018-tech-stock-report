@@ -1,6 +1,5 @@
 import tensorflow as tf
 
-
 def fc_layer(X, input_size):
     initializer=tf.contrib.layers.variance_scaling_initializer(dtype=tf.float64)
     w1 = tf.Variable(initializer([input_size, 1]), dtype=tf.float64)
@@ -101,6 +100,7 @@ def attention_decoder_cell(encoded_output, decoder_cell, vocab_size, hidden_dim,
         
 def decode(encoded_output, encoded_state, num_layers, hidden_dim, vocab_size, batch_size, max_length, helper, keep_prob, scope_name, reuse=None):
     with tf.variable_scope(scope_name, reuse=reuse):
+       # tf.get_variable_scope().reuse_variables()
         if num_layers > 1:
             cells = []
             for _ in range(num_layers):
@@ -117,13 +117,21 @@ def decode(encoded_output, encoded_state, num_layers, hidden_dim, vocab_size, ba
                                                          output_keep_prob=keep_prob)
             
             
-        out_cell = attention_decoder_cell(encoded_output, decoder_cell, vocab_size, hidden_dim, reuse= reuse)
+#         out_cell = attention_decoder_cell(encoded_output, decoder_cell, vocab_size, hidden_dim, reuse= reuse)
+        attention_mechanism = tf.contrib.seq2seq.LuongAttention(num_units = hidden_dim*3, 
+                                                                   memory=encoded_output,
+                                                                   dtype=tf.float64)        
+        attn_cell = tf.contrib.seq2seq.AttentionWrapper(decoder_cell
+                                                        ,attention_mechanism, 
+                                                        attention_layer_size = hidden_dim*3 / 2,
+                                                       alignment_history=True)
+        out_cell = tf.contrib.rnn.OutputProjectionWrapper(attn_cell, vocab_size, reuse=reuse)
+        
         
         decoder = tf.contrib.seq2seq.BasicDecoder(cell=out_cell,
                                                   helper=helper
                                                   ,initial_state=out_cell.zero_state(dtype=tf.float64, batch_size=batch_size).clone(cell_state = encoded_state))
-        
-        
+          
         outputs,final_state ,_= tf.contrib.seq2seq.dynamic_decode(decoder=decoder,
                                                     output_time_major=False,
                                                     impute_finished=True, 
@@ -136,17 +144,16 @@ def decoder_module(embedding_matrix, encoded_output, encoded_state, decoder_inpu
         keep_prob = 1 - dropout
     else:
         keep_prob = 1 
-        
-    inputs_embed = tf.nn.embedding_lookup(embedding_matrix, decoder_input) # batch_size  x max_length x embedding_dim  
-    
+           
     if train == True:
+        inputs_embed = tf.nn.embedding_lookup(embedding_matrix, decoder_input) # batch_size  x max_length x embedding_dim  
         helper = tf.contrib.seq2seq.TrainingHelper(inputs_embed,[max_length] * batch_size) 
         outputs, state = decode(encoded_output, encoded_state, num_layers, hidden_dim, vocab_size, batch_size, max_length, helper, dropout ,'decoder')
     else:    
         helper = tf.contrib.seq2seq.GreedyEmbeddingHelper(embedding_matrix, 
                                                                     start_tokens=tf.tile([SOS_token], [batch_size]),
                                                                     end_token=EOS_token)    
-        outputs, state = decode(encoded_output, encoded_state, num_layers, hidden_dim, vocab_size, batch_size,max_length, helper, 1 ,'decoder', reuse=True)
+        outputs, state = decode(encoded_output, encoded_state, num_layers, hidden_dim, vocab_size, batch_size,max_length, helper,keep_prob ,'decoder', reuse=tf.AUTO_REUSE)
 
     return outputs, state
 
@@ -160,4 +167,3 @@ def _create_attention_images_summary(final_context_state):
     attention_images *= 255
     attention_summary = tf.summary.image("attention_images", attention_images)
     return attention_summary
-

@@ -1,5 +1,6 @@
 import os
 
+
 #-----Training param-----
 encoder_layers = 3
 decoder_layers = 3
@@ -24,6 +25,20 @@ EOS_token = 3
 # $ make && make install
 #./fasttext skipgram -input ../../txt_datalysis_data.txt -output ../../fasttext_vector -dim 256 -ws 3 -epoch 50 -minCount 20
 
+
+#-----preprocess------
+
+stock_length = 25
+per_num = 5
+at_num = 5
+minus_num = 5
+plus_num = 5
+enter_num = 5
+u_dollor_num = 5
+b_dollor_num = 0
+#-----save path-----
+save_path = os.getcwd()+'/save_model/epoch_1-3layer'
+
 #-----data path-----
 top100_stock_data_path = "./csv_data/top100_company_stock_close.csv"
 stock_text_path = './csv_data/stock_text_concat_data/'
@@ -31,6 +46,8 @@ slang_path = './txt_data/slang.txt'
 isdir = os.getcwd()+stock_text_path[1:]
 is_train_dir = os.getcwd()+'/training_data/'
 is_val_dir = os.getcwd()+'/val_data/'
+
+idx2word_dict = './all_data/idx2word_dict.txt'
 
 fasttext = "./fasttext_vector.bin"
 
@@ -50,6 +67,3 @@ val_month_stock = './val_data/val_month_stock.pickle'
 val_t_month_stock = './val_data/val_t_month_stock.pickle'
 val_input_cap_vector = './val_data/val_input_cap_vector.pickle'
 val_output_cap_vector = './val_data/val_output_cap_vector.pickle'
-
-
-

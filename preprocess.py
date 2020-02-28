@@ -17,14 +17,12 @@ from nltk.stem.porter import *
 from nltk.stem import WordNetLemmatizer
 import pickle
 from functools import partial
-
 top_k = 5000
 tokenizer = tf.keras.preprocessing.text.Tokenizer(lower=True,
                                                   split=' ',
                                                   num_words=top_k, 
                                                   oov_token="<unk>",  
                                                   filters='!"#$%&()*+.,-:;=?@[\]^_`{|}~ ') 
-
 
 def make_concat_stock(data_path, output_path):
     '''
@@ -211,10 +209,12 @@ def preprocess_tweet_text(text):
     #text = re.sub(r'&amp;', '&', text)
     return text
 
+
 def remove_stop_word(df):
     stop = stopwords.words("english") #up, down은 제외하자
     df = df.apply(lambda x: ' '.join([word for word in x.split() if word not in (stop) ]))
     return df
+
 
 def stemming(df):
     tokenized_tweet = df.apply(lambda x: x.split())
@@ -223,6 +223,7 @@ def stemming(df):
     for i in tokenized_tweet.index:
         tokenized_tweet[i] = ' '.join(tokenized_tweet[i])
     return tokenized_tweet
+
 
 def Lemmatizer(df):
     tokenized_tweet = df.apply(lambda x: x.split())
@@ -237,11 +238,13 @@ def short_len(df):
     df = df.apply(lambda x: ' '.join([word for word in x.split() if len(word)!=1 ]))
     return df
 
+
 def drop_na(data):
     if 'nan' not in data:
         return data
     else:
         return None
+    
     
 def some_nan_bug(df):
     df['week_stock'] = df['week_stock'].apply(lambda x : (drop_na(x)))
@@ -269,35 +272,33 @@ def slang_map(df):
 
 
 def preprocess(df):
-    df['text'] = df['text'].apply(lambda x: (stock_length(x,50))) #문장길이 제한 25
+    df['text'] = df['text'].apply(lambda x: (stock_length(x,cfg.stock_length))) #문장길이 제한 25
     df=df.dropna()
     df['text'] = df['text'].apply(lambda x: (not_stock(x))) #stock 아니면 제거
     df=df.dropna()  
     df['text'] = df['text'].apply(lambda x: (remove_text(x))) #잡단어 제거
     df=df.dropna()    
-    df['text'] = df['text'].apply(lambda x: (per_num(x,5)))#% 5개 이상 제거   
+    df['text'] = df['text'].apply(lambda x: (per_num(x,cfg.per_num)))# % 5개 이상 제거   
     df=df.dropna()
-    df['text'] = df['text'].apply(lambda x: (at_num(x,5)))#@ 5개 이상 제거  
+    df['text'] = df['text'].apply(lambda x: (at_num(x,cfg.at_num)))# @ 5개 이상 제거  
     df=df.dropna()
-    df['text'] = df['text'].apply(lambda x: (minus_num(x,5)))# - 5개 이상 제거   
+    df['text'] = df['text'].apply(lambda x: (minus_num(x,cfg.minus_num)))# - 5개 이상 제거   
     df=df.dropna()
-    df['text'] = df['text'].apply(lambda x: (plus_num(x,5)))# + 5개 이상 제거
+    df['text'] = df['text'].apply(lambda x: (plus_num(x,cfg.plus_num)))# + 5개 이상 제거
     df=df.dropna()
-    df['text'] = df['text'].apply(lambda x: (enter_num(x,5)))# 엔터 5개 이상 제거
+    df['text'] = df['text'].apply(lambda x: (enter_num(x,cfg.enter_num)))# 엔터 5개 이상 제거
     df=df.dropna()
     df['text'] = df['text'].apply(lambda x: (analysis_word(x)))#특정단어 없으면 제거
     df=df.dropna()
-    df['text'] = df['text'].apply(lambda x: dollar_num(x,0,20)) #$개수 1개
+    df['text'] = df['text'].apply(lambda x: dollar_num(x,cfg.b_dollor_num,cfg.u_dollor_num)) #$개수 1개
     df=df.dropna()
     df['text'] = df['text'].apply(lambda x: preprocess_tweet_text(x)) 
     df['text'] = df['text'].drop_duplicates()
     df=df.dropna()
     #df['text'] = remove_stop_word(df['text'])
-    #short_len2(df['text'])
     df['text'] = short_len(df['text'])
     df['text'] = Lemmatizer(df['text'])
     df=df.dropna()
-    #df= df.drop(columns=['date'])
     df.reset_index(drop=True, inplace=True)
     df.columns = ['date','text','week_stock','month_stock','t_month_stock']
     return df
@@ -330,6 +331,7 @@ def std_nomal(stock_data):#각각의 정규화
     all_data =np.array(all_data)
     return all_data
 
+
 def convert_float(stock_sentence): 
     stock_list = []
     for sentence in stock_sentence:
@@ -339,6 +341,7 @@ def convert_float(stock_sentence):
             float_token.append(float(token))
         stock_list.append(float_token)
     return stock_list
+
 
 def attach_symbol(text):
     train_captions =[]
@@ -360,6 +363,11 @@ def decoder_input(train_captions):
         output_train_seq.append(caption[4:])
     
     tokenizer.word_index['<pad>'] = 0
+    tokenizer.index_word[0]='<pad>'
+    #idx2word dict save
+    with open(cfg.idx2word_dict, 'w' ) as f:
+        f.write(str(tokenizer.index_word))
+        
     input_train_seq=tokenizer.texts_to_sequences(input_train_seq)
     output_train_seq=tokenizer.texts_to_sequences(output_train_seq)
     max_length = calc_max_length(output_train_seq)
@@ -368,6 +376,7 @@ def decoder_input(train_captions):
     output_cap_vector=tf.keras.preprocessing.sequence.pad_sequences(output_train_seq,maxlen= max_length,padding='post')
     
     return input_cap_vector, output_cap_vector
+
 
 def make_embedding_matrix(train_captions):
     tokenizer.fit_on_texts(train_captions)
@@ -407,7 +416,6 @@ def make_data_set(df):
     if not os.path.isdir(cfg.is_val_dir):
         os.makedirs(cfg.is_val_dir)
         
-        
 #-----training set-----
     with open(cfg.week_stock,'wb') as f:
         pickle.dump(train_week_stock, f)
@@ -441,6 +449,35 @@ def make_data_set(df):
         pickle.dump(val_output_cap_vector, f)        
 
 
+def load_dict():
+    with open(cfg.idx2word_dict, 'r') as f:
+        idx2word_dict = eval(f.read().strip())
+    return idx2word_dict
+
+
+def idx_to_text(batch, vocab, end_token = '</s>'):
+    results =[]
+    for sentence in batch:
+        sentence_token = []
+        for idx in sentence:
+            word = vocab[idx]
+            if word == end_token:
+                break
+            sentence_token.append(word)
+        results.append(sentence_token)
+    return results
+
+
+def decode_text(sequence, vocab, end_token = '</s>'):
+    result = []
+    for idx in sequence:
+        word = vocab[idx]
+        if word == end_token:
+            return ' '.join(result)
+        result.append(vocab[idx])
+    return ' '.join(result)
+
+
 def main():
     if not os.path.isdir(cfg.isdir):
         os.makedirs(cfg.isdir)
@@ -458,6 +495,7 @@ def main():
     print('all_data.csv saved..')
     make_data_set(result)
     print('training data saved...')
+
 
 if __name__ == '__main__':
     main()

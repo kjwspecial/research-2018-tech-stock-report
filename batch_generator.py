@@ -4,7 +4,6 @@ import pickle
 import config as cfg
 from sklearn.utils import shuffle
 
-
 def load_training_data():
     with open(cfg.week_stock, 'rb') as f:
         week_stock = pickle.load(f)
@@ -22,7 +21,7 @@ def load_training_data():
 def load_val_data():
     with open(cfg.val_week_stock, 'rb') as f:
         val_week_stock = pickle.load(f)
-    with open(cfg.val_val_month_stock, 'rb') as f:
+    with open(cfg.val_month_stock, 'rb') as f:
         val_month_stock = pickle.load(f)
     with open(cfg.val_t_month_stock, 'rb') as f:
         val_t_month_stock = pickle.load(f)
@@ -58,4 +57,3 @@ def batch_generator(week_stock, month_stock,t_month_stock,input_cap_vector, outp
                 't_month_stock': t_month_batch
             }
             yield (x_data)
-
