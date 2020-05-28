@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 from multiprocessing import Pool 
 
 import nltk
@@ -12,9 +6,6 @@ import random
 from nltk.translate.bleu_score import SmoothingFunction
 
 from metrics.basic import Metrics
-
-
-# In[ ]:
 
 
 class BLEU(Metrics):
@@ -51,7 +42,7 @@ class BLEU(Metrics):
         
     @staticmethod  
     def cal_bleu(reference, hypothesis, weight):
-        return nltk.translate.bleu_score.sentence_bleu(reference, hypothesis, weight,smoothing_function=SmoothingFunction().method1)
+        return nltk.translate.bleu_score.sentence_bleu([reference], hypothesis, weight,smoothing_function=SmoothingFunction().method1)
 
     # dataset 초기화, batch단위로 할거임.
     def reset(self, infer_text = None, real_text = None):
