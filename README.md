@@ -17,5 +17,5 @@ $ git clone https://github.com/facebookresearch/fastText.git
 $ cd fastText
 $ mkdir build && cd build && cmake ..
 $ make && make install
-$ ./fasttext skipgram -input ../../txt_dat/analysis_data.txt -output ../../fasttext_vector -dim 256 -ws 3 -epoch 50 -minCount 20
+$ ./fasttext skipgram -input ../../txt_data/analysis_data.txt -output ../../fasttext_vector -dim 256 -ws 3 -epoch 50 -minCount 20
 ```
