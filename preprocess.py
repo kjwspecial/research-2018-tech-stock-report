@@ -2,28 +2,29 @@ import config as cfg
 import pandas as pd
 import numpy as np
 from numpy import mean, std
-import os
-
 import tensorflow as tf
-from gensim.models.wrappers.fasttext import FastText
 
-from sklearn.model_selection import train_test_split
 import re
+import os
+import pickle
+
 import nltk
 from nltk.stem.porter import *
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import *
 from nltk.stem import WordNetLemmatizer
-import pickle
 from functools import partial
+from sklearn.model_selection import train_test_split
+from gensim.models.wrappers.fasttext import FastText
+
 top_k = 5000
 tokenizer = tf.keras.preprocessing.text.Tokenizer(lower=True,
                                                   split=' ',
                                                   num_words=top_k, 
                                                   oov_token="<unk>",  
                                                   filters='!"#$%&()*+.,-:;=?@[\]^_`{|}~ ') 
-
+   
 def make_concat_stock(data_path, output_path):
     '''
         주가, 분석문 결합.
@@ -72,6 +73,7 @@ def make_concat_stock(data_path, output_path):
         json_data.to_csv(output_path+company+'.csv',index=None)
         print(company+'.csv saved..')
 
+
 #잡단어 제거 목록
 remove=['CEO','jamie','episode','email','member','development',' ai ','#patent','galaxies','Bezos','profits','arrayit','Invest',
         'BidaskScore','workspace','video','solarpower','Research','industries','MANAGEMENT','MERGER','#maxpain','#maxpain','options',
@@ -85,10 +87,11 @@ def remove_text(text):
             return None
     return text
 
-# 분석문 관련 단어
+# 주가 분석문 관련 단어(적절히 선택후 추출)
 keyword=['bull','bear','break','gap','resistance','still','breakout','run','back ','great','stagnation','uptrend','hold',
 'helping' ,'held','huge','continuation','consolidation','upside','update','turn','high','breakdown','broke','nice','setting',
         'expansion','bounce','Pullback','buyback','move','swing','strong','carrying','shoulder','head','cup','downtrend','wedge','pennant']
+# keyword = ['bull','bear','resistance','breakout','breakdown','cup','handle','wedge','pennant','pullback']
 
 def analysis_word(text):
     for key in keyword:
@@ -183,6 +186,13 @@ def stock_length(text,num):
         return None
     return text
 
+#--------회사 단어 바꾸기-------
+def word_change(text):
+    tokens = text.split(' ')
+    for token in tokens:
+        if '$' in token:
+            text = text.replace(token,'CCCCC')
+    return text
 
 def preprocess_tweet_text(text):
     text = re.sub(r'http\S+',' ', str(text)) # Remove URLs
@@ -209,12 +219,15 @@ def preprocess_tweet_text(text):
     #text = re.sub(r'&amp;', '&', text)
     return text
 
-
 def remove_stop_word(df):
-    stop = stopwords.words("english") #up, down은 제외하자
+    stop = stopwords.words("english") 
+    
+    not_rm =['more','most','all','over','further','off','on','out','in','down','up','under','again','very']
+    for word in not_rm:
+        stop.remove(word)
+        
     df = df.apply(lambda x: ' '.join([word for word in x.split() if word not in (stop) ]))
     return df
-
 
 def stemming(df):
     tokenized_tweet = df.apply(lambda x: x.split())
@@ -224,7 +237,6 @@ def stemming(df):
         tokenized_tweet[i] = ' '.join(tokenized_tweet[i])
     return tokenized_tweet
 
-
 def Lemmatizer(df):
     tokenized_tweet = df.apply(lambda x: x.split())
     Lemmat = WordNetLemmatizer()
@@ -233,18 +245,15 @@ def Lemmatizer(df):
         tokenized_tweet[i] = ' '.join(tokenized_tweet[i])
     return tokenized_tweet
 
-
 def short_len(df):
     df = df.apply(lambda x: ' '.join([word for word in x.split() if len(word)!=1 ]))
     return df
-
 
 def drop_na(data):
     if 'nan' not in data:
         return data
     else:
         return None
-    
     
 def some_nan_bug(df):
     df['week_stock'] = df['week_stock'].apply(lambda x : (drop_na(x)))
@@ -253,7 +262,6 @@ def some_nan_bug(df):
     df = df.dropna()
     df.reset_index(drop=True, inplace=True)
     return df
-
 
 def slang_map(df):
     with open(cfg.slang_path) as file:
@@ -269,7 +277,6 @@ def slang_map(df):
             text = " ".join(sent)
         df['text'].iloc[i]=text
     return df
-
 
 def preprocess(df):
     df['text'] = df['text'].apply(lambda x: (stock_length(x,cfg.stock_length))) #문장길이 제한 25
@@ -295,7 +302,7 @@ def preprocess(df):
     df['text'] = df['text'].apply(lambda x: preprocess_tweet_text(x)) 
     df['text'] = df['text'].drop_duplicates()
     df=df.dropna()
-    #df['text'] = remove_stop_word(df['text'])
+    df['text'] = remove_stop_word(df['text'])
     df['text'] = short_len(df['text'])
     df['text'] = Lemmatizer(df['text'])
     df=df.dropna()
@@ -303,14 +310,12 @@ def preprocess(df):
     df.columns = ['date','text','week_stock','month_stock','t_month_stock']
     return df
 
-
 def read_dir(data_path):
     all_file = []
     for root, dirs, files in os.walk(data_path):
         for file in files:
             all_file.append(file)
     return all_file
-
 
 def all_company_preprocess(data_path, all_file):
     all_df = []
@@ -322,7 +327,6 @@ def all_company_preprocess(data_path, all_file):
     result = result.dropna()
     return result
 
-
 def std_nomal(stock_data):#각각의 정규화
     all_data=[]
     for i in stock_data:
@@ -330,7 +334,6 @@ def std_nomal(stock_data):#각각의 정규화
         all_data.append(data_standadized_np)
     all_data =np.array(all_data)
     return all_data
-
 
 def convert_float(stock_sentence): 
     stock_list = []
@@ -342,13 +345,11 @@ def convert_float(stock_sentence):
         stock_list.append(float_token)
     return stock_list
 
-
 def attach_symbol(text):
     train_captions =[]
     for sentence in text:
         train_captions.append('<s> '+sentence + ' </s>')
     return train_captions
-
 
 def calc_max_length(tensor):
     return max(len(t) for t in tensor)
@@ -370,13 +371,12 @@ def decoder_input(train_captions):
         
     input_train_seq=tokenizer.texts_to_sequences(input_train_seq)
     output_train_seq=tokenizer.texts_to_sequences(output_train_seq)
-    max_length = calc_max_length(output_train_seq)
     
+    max_length = calc_max_length(output_train_seq)
     input_cap_vector=tf.keras.preprocessing.sequence.pad_sequences(input_train_seq,maxlen= max_length,padding='post')
     output_cap_vector=tf.keras.preprocessing.sequence.pad_sequences(output_train_seq,maxlen= max_length,padding='post')
     
     return input_cap_vector, output_cap_vector
-
 
 def make_embedding_matrix(train_captions):
     tokenizer.fit_on_texts(train_captions)
@@ -395,7 +395,6 @@ def make_embedding_matrix(train_captions):
             embedding_matrix[i-1] = embedding_vector
     return embedding_matrix
 
-
 def make_data_set(df):
     stock_data = convert_float(df['t_month_stock'])
     stock_data = std_nomal(stock_data)
@@ -405,10 +404,10 @@ def make_data_set(df):
     t_month_stock =stock_data
     
     input_cap_vector, output_cap_vector = decoder_input(captions)
-    
-    with open(cfg.all_data+'captions','wb') as f:
-        pickle.dump(captions, f)
-        
+
+    with open(cfg.all_captions+'captions.pickle','wb') as f:
+        pickle.dump(captions, f)      
+
     train_week_stock, val_week_stock,    train_month_stock, val_month_stock,    train_t_month_stock, val_t_month_stock,    train_input_cap_vector, val_input_cap_vector,    train_output_cap_vector, val_output_cap_vector = train_test_split(week_stock, month_stock,                                                    t_month_stock, input_cap_vector, output_cap_vector,                                                   test_size=0.20, random_state=123)    
     if not os.path.isdir(cfg.is_train_dir):
         os.makedirs(cfg.is_train_dir)
@@ -449,34 +448,20 @@ def make_data_set(df):
         pickle.dump(val_output_cap_vector, f)        
 
 
-def load_dict():
-    with open(cfg.idx2word_dict, 'r') as f:
-        idx2word_dict = eval(f.read().strip())
-    return idx2word_dict
+#not use..
+def prepare_batch(inputs):
+    sequence_lengths = [len(seq) for seq in inputs]
+    batch_size = len(inputs)
+    max_sequence_length = max(sequence_lengths)
+        
+    inputs_batch_major = np.zeros(shape=[batch_size, max_sequence_length], 
+                                  dtype=np.int32)
 
+    for i, seq in enumerate(inputs):
+        for j, element in enumerate(seq):
+            inputs_batch_major[i, j] = element
 
-def idx_to_text(batch, vocab, end_token = '</s>'):
-    results =[]
-    for sentence in batch:
-        sentence_token = []
-        for idx in sentence:
-            word = vocab[idx]
-            if word == end_token:
-                break
-            sentence_token.append(word)
-        results.append(sentence_token)
-    return results
-
-
-def decode_text(sequence, vocab, end_token = '</s>'):
-    result = []
-    for idx in sequence:
-        word = vocab[idx]
-        if word == end_token:
-            return ' '.join(result)
-        result.append(vocab[idx])
-    return ' '.join(result)
-
+    return inputs_batch_major, sequence_lengths
 
 def main():
     if not os.path.isdir(cfg.isdir):
@@ -491,7 +476,11 @@ def main():
     result = some_nan_bug(result)
     #slang_map
     result = slang_map(result)
+    result['text'] = result['text'].apply(lambda x: (stock_length(x,cfg.stock_length))) #문장길이 제한 25
+    result = result.dropna()
+    result.reset_index(drop=True, inplace=True)
     result.to_csv('./all_data/all_data.csv',index = None)
+    result['text'].to_csv(cfg.analysis_path,index=None)
     print('all_data.csv saved..')
     make_data_set(result)
     print('training data saved...')

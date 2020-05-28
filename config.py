@@ -1,22 +1,21 @@
 import os
 
-
 #-----Training param-----
 encoder_layers = 3
 decoder_layers = 3
 
 hidden_dim = 128
-batch_size = 32
-dropout = 0.2
-epochs = 1201
-learning_rate = 1e-4
-
+batch_size = 256
+dropout = 0.5
+epochs = 7201
+learning_rate = 2e-4
+beam_width = 10
 
 #----fixed-----
-max_length = 51
-vocab_size = 13456
-SOS_token = 2
-EOS_token = 3
+max_length = 32
+vocab_size = 9099
+SOS_token = 3
+EOS_token = 4
 
 #-----word embedding----
 # $ git clone https://github.com/facebookresearch/fastText.git
@@ -37,7 +36,7 @@ enter_num = 5
 u_dollor_num = 5
 b_dollor_num = 0
 #-----save path-----
-save_path = os.getcwd()+'/save_model/epoch_1-3layer'
+save_path = os.getcwd()+'/save_model/stock_tech_model'
 
 #-----data path-----
 top100_stock_data_path = "./csv_data/top100_company_stock_close.csv"
@@ -47,9 +46,9 @@ isdir = os.getcwd()+stock_text_path[1:]
 is_train_dir = os.getcwd()+'/training_data/'
 is_val_dir = os.getcwd()+'/val_data/'
 
-idx2word_dict = './all_data/idx2word_dict.txt'
+idx2word_dict = './txt_data/idx2word_dict.txt'
 
-fasttext = "./fasttext_vector.bin"
+fasttext = "../fasttext_vector.bin"
 
 all_data = os.getcwd()+'/all_data/'
 all_captions = os.getcwd()+'/captions/'
