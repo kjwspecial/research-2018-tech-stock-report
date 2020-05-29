@@ -1,4 +1,4 @@
-# research-2019-Stock-Price_Technical_Analysis_Report
+# research-2018-tech-stock-report
 
 Stock-to-text System
 
